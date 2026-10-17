@@ -1,12 +1,13 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const tempAuth = require('../middleware/tempAuth');
+const auth = require('../middleware/auth');
 const asyncHandler = require('../middleware/asyncHandler');
 const controller = require('../controllers/taskController');
 
 const router = express.Router();
 
-router.use(tempAuth);
+// Every task route requires a valid JWT
+router.use(auth);
 
 // Reject malformed ids with 400 before they reach the database
 router.param('id', (req, res, next, id) => {
