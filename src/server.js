@@ -2,8 +2,13 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const connectDB = require('./db');
-const User = require('./models/User');
+const authRoutes = require('./routes/authRoutes');
 const taskRoutes = require('./routes/taskRoutes');
+
+if (!process.env.JWT_SECRET) {
+  console.error('JWT_SECRET is missing. Add it to your .env file.');
+  process.exit(1);
+}
 
 const app = express();
 app.use(express.json());
@@ -17,20 +22,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// TEMPORARY (remove on Day 3): create a user so you have an id to test with
-app.post('/dev/seed-user', async (req, res, next) => {
-  try {
-    const user = await User.create({
-      name: 'Test User',
-      email: `test${Date.now()}@example.com`,
-      passwordHash: 'temporary',
-    });
-    res.status(201).json({ id: user._id });
-  } catch (err) {
-    next(err);
-  }
-});
-
+app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 
 // 404 for unknown routes
@@ -42,6 +34,7 @@ app.use((err, req, res, next) => {
   if (err.name === 'ValidationError' || err.name === 'CastError') {
     return res.status(400).json({ error: err.message });
   }
+  if (err.code === 11000) return res.status(409).json({ error: 'Duplicate value' });
   console.error(err);
   res.status(500).json({ error: 'Internal server error' });
 });
